@@ -6,7 +6,7 @@ ai:
     agent:
         rag:
             platform: 'ai.platform.gemini'
-            model: 'gemini-2.5-flash'
+            model: 'gemini-3.5-flash-lite'
             prompt: >
                 Tu es un assistant technique. Réponds uniquement à partir du contexte fourni.
                 Si la réponse n'est pas dans le contexte, dis-le clairement.

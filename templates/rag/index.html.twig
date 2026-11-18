@@ -1,0 +1,45 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Assistant RAG - Base de connaissances{% endblock %}
+
+{% block body %}
+<main style="max-width: 800px; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; line-height: 1.6;">
+    <h1>Interroger la base documentaire</h1>
+
+    {# Affichage des erreurs globales du formulaire #}
+    {{ form_start(form, {'attr': {'style': 'display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;'}}) }}
+        {{ form_row(form.prompt, {
+            'label': 'Votre question :',
+            'attr': {
+                'rows': 3,
+                'placeholder': 'Posez une question sur vos documents...',
+                'style': 'width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;'
+            }
+        }) }}
+
+        <button type="submit" style="align-self: flex-start; padding: 0.6rem 1.2rem; background: #1d4ed8; color: #fff; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer;">
+            Envoyer
+        </button>
+    {{ form_end(form) }}
+
+    {# Zone de réponse affichée uniquement après soumission #}
+    {% if response is not null %}
+        <section style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1.5rem;">
+            <h2 style="margin-top: 0; font-size: 1.2rem; color: #0f172a;">Réponse</h2>
+            <div style="white-space: pre-wrap; color: #1e293b;">{{ response }}</div>
+
+            {% if sources is not empty %}
+                <hr style="border: 0; border-top: 1px solid #cbd5e1; margin: 1.25rem 0;">
+                <div style="font-size: 0.9rem; color: #475569;">
+                    <strong>Sources utilisées :</strong>
+                    <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+                        {% for source in sources %}
+                            <li><code>{{ source }}</code></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </section>
+    {% endif %}
+</main>
+{% endblock %}

@@ -1,59 +1,116 @@
-# Symfony Docker
+# Symfony AI RAG — Document Assistant (Gemini + ChromaDB)
 
-A [Docker](https://www.docker.com/)-based installer and runtime for the [Symfony](https://symfony.com) web framework,
-with [FrankenPHP](https://frankenphp.dev) and [Caddy](https://caddyserver.com/) inside!
+Web application built with **Symfony** and **`symfony/ai-bundle`**, implementing a **RAG** (*Retrieval-Augmented Generation*) architecture.
 
-Coding-agents ready: ships with a [Dev Container](https://containers.dev/) and a [one-page guide](docs/agents.md)
-to run [OpenCode](https://opencode.ai), [Claude Code](https://claude.ai/claude-code), or any AI coding assistant,
-against a local or a remote model, with an optional network sandbox.
+It indexes text/Markdown files into a **ChromaDB** vector database, then answers natural-language questions about them using **Google Gemini**, with source citations.
 
-![CI](https://github.com/dunglas/symfony-docker/workflows/CI/badge.svg)
+Runtime based on [Symfony Docker](https://github.com/dunglas/symfony-docker) (**FrankenPHP** + **Caddy**).
 
-## Getting Started
+## Tech Stack
 
-1. If not already done, [install Docker Compose](https://docs.docker.com/compose/install/) (v2.10+)
-2. Run `docker compose build --pull --no-cache` to build fresh images
-3. Run `docker compose up --wait` to set up and start a fresh Symfony project
-4. Open `https://localhost` in your favorite web browser and [accept the auto-generated TLS certificate](https://stackoverflow.com/a/15076602/1352334)
-5. Run `docker compose down --remove-orphans` to stop the Docker containers.
+| Layer | Technology |
+|---|---|
+| Framework | Symfony (FrankenPHP / Caddy runtime) |
+| AI components | `symfony/ai-bundle`, `symfony/ai-platform`, `symfony/ai-store`, `symfony/ai-chroma-db-store` |
+| Embedding model | Google `gemini-embedding-001` (3,072-dimension vectors) |
+| Generative model (LLM) | Google `gemini-3.5-flash-lite` |
+| Vector database | ChromaDB |
+| Containerization | Podman / Podman Compose | Or docker
 
-## Features
+## RAG Pipeline
 
-- Production, development and CI ready
-- Just 1 service by default
-- Super-readable configuration
-- Blazing-fast performance thanks to [the worker mode of FrankenPHP](https://frankenphp.dev/docs/worker/)
-- [Installation of extra Docker Compose services](docs/extra-services.md) with Symfony Flex
-- Automatic HTTPS (in dev and prod)
-- HTTP/3 and [Early Hints](https://symfony.com/blog/new-in-symfony-6-3-early-hints) support
-- [Vulcain](https://vulcain.rocks) support
-- Native [XDebug](docs/xdebug.md) integration
-- [Hot Reloading](https://frankenphp.dev/docs/hot-reload/)
-- [Dev Container](https://containers.dev/) support
-- [AI coding agents](docs/agents.md) with an optional network sandbox
-- Rootless, slim production image
+### Ingestion — `app:generate-embeddings`
 
-**Enjoy!**
+```text
+[Source file]
+      │
+      ▼
+[TextSplitTransformer — 500 chars, 200 overlap]
+      │
+      ▼
+[Raw chunk text saved in metadata]
+      │
+      ▼
+[Vectorizer — gemini-embedding-001]
+      │
+      ▼
+[ChromaDB — collection: my_collection]
+```
 
-## Docs
+### Query — `RagController`
 
-1. [Options available](docs/options.md)
-2. [Using Symfony Docker with an existing project](docs/existing-project.md)
-3. [Support for extra services](docs/extra-services.md)
-4. [Deploying in production](docs/production.md)
-5. [Debugging with Xdebug](docs/xdebug.md)
-6. [TLS Certificates](docs/tls.md)
-7. [Using MySQL instead of PostgreSQL](docs/mysql.md)
-8. [Using Alpine Linux instead of Debian](docs/alpine.md)
-9. [Using a Makefile](docs/makefile.md)
-10. [Updating the template](docs/updating.md)
-11. [Troubleshooting](docs/troubleshooting.md)
-12. [Using AI coding agents](docs/agents.md)
+```text
+[User question]
+      │
+      ▼
+[Vectorizer — gemini-embedding-001]
+      │
+      ▼
+[VectorQuery on ChromaDB → top chunks]
+      │
+      ▼
+[Context + prompt → Gemini agent (rag)]
+      │
+      ▼
+[Answer + cited sources]
+```
 
-## License
+## Prerequisites
 
-Symfony Docker is available under the MIT License.
+- Podman and `podman-compose`
+- A valid Google AI Studio (Gemini) API key
 
-## Credits
+## Installation
 
-Created by [Kévin Dunglas](https://dunglas.dev), co-maintained by [Maxime Helias](https://twitter.com/maxhelias) and sponsored by [Les-Tilleuls.coop](https://les-tilleuls.coop).
+1. **Configure environment variables.**
+   Create a `.env.local` file at the project root:
+
+   ```dotenv
+   GEMINI_API_KEY="your_gemini_api_key"
+   CHROMADB_HOST="http://chromadb"
+   ```
+
+2. **Start the containers** (FrankenPHP + ChromaDB):
+
+   ```bash
+   podman-compose up -d --build
+   ```
+
+3. **Install PHP dependencies** (if needed):
+
+   ```bash
+   podman exec -it rag_php_1 composer install
+   ```
+
+## Usage
+
+### 1. Index a document
+
+Run the console command with the path of the file to vectorize (e.g. `README.md`):
+
+```bash
+podman exec -it rag_php_1 php bin/console app:generate-embeddings README.md
+```
+
+> **Note:** the command drops and recreates the ChromaDB collection (`drop()` then `setup()`) on every run. This prevents duplicate entries when re-indexing.
+
+### 2. Query the knowledge base
+
+1. Open <https://localhost> in a browser (accept the self-signed local TLS certificate).
+2. Enter a question about the indexed document.
+3. The interface displays the answer generated by Gemini and the cited sources.
+
+## Key Files
+
+| File | Role |
+|---|---|
+| `config/packages/ai.yaml` | Configures the Gemini platform, the ChromaDB store and the `rag` agent |
+| `src/Command/GenerateEmbeddingsCommand.php` | Ingestion pipeline: chunking, raw text saved to metadata, vectorization, storage |
+| `src/Controller/RagController.php` | Query pipeline: form handling, vector search, context assembly, LLM call |
+| `src/Form/AskQuestionType.php` | Symfony form type for submitting questions |
+| `templates/rag/index.html.twig` | Twig template rendering the form, the answer and the source citations |
+
+## License & Credits
+
+- Project developed for a Symfony AI course.
+- Runtime template based on [Symfony Docker](https://github.com/dunglas/symfony-docker) by Kévin Dunglas (MIT License).
