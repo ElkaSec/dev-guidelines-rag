@@ -8,14 +8,16 @@ use Symfony\AI\Store\Document\TextDocument;
 use Symfony\AI\Store\Document\Vectorizer;
 use Symfony\AI\Store\Indexer\DocumentIndexer;
 use Symfony\AI\Store\Indexer\DocumentProcessor;
-use Symfony\AI\Store\InMemory\Store;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\AI\Store\Document\Transformer\TextSplitTransformer;
 use Symfony\Component\Uid\Uuid;
 use function sprintf;
+use Symfony\AI\Store\StoreInterface;
+use Symfony\AI\Store\ManagedStoreInterface;
 
 
 #[AsCommand(
@@ -27,6 +29,7 @@ class GenerateEmbeddingsCommand
     public function __construct(
         #[Autowire(env: 'GEMINI_API_KEY')]
         private readonly ?string $apiKey,
+        private readonly StoreInterface $store,
     ) {}
 
     public function __invoke(
@@ -55,19 +58,30 @@ class GenerateEmbeddingsCommand
             $io->error(sprintf('The file %s is empty or could not be read.', $file));
             return Command::FAILURE;
         }
+      
+        if ($this->store instanceof ManagedStoreInterface) {
+            try {
+                $this->store->setup();
+            } catch (\Throwable) {
+                // La collection existe déjà dans ChromaDB
+            }
+        }
 
         // 1. Création du document Symfony AI avec ses métadonnées
         $document = new TextDocument(
-            id: Uuid::v4(),
+            id: Uuid::v5(Uuid::fromString(Uuid::NAMESPACE_URL), basename($file)),
             content: $content,
             metadata: new Metadata(['source' => basename($file)]),
         );
 
-        // 2. Initialisation du Store, de la plateforme Gemini et de l'Indexer
-        $store = new Store();
+
         $platform = Factory::createPlatform($this->apiKey);
         $vectorizer = new Vectorizer($platform, 'gemini-embedding-001');
-        $indexer = new DocumentIndexer(new DocumentProcessor($vectorizer, $store));
+        $splitter = new TextSplitTransformer(chunkSize: 500, overlap: 200);
+
+       $indexer = new DocumentIndexer(
+            new DocumentProcessor($vectorizer, $this->store, [], [$splitter])
+        );
         $indexer->index($document);
 
         $io->success(sprintf('Embeddings successfully generated for "%s"!', basename($file)));

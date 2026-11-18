@@ -7,7 +7,7 @@ services:
       DEFAULT_URI: ${DEFAULT_URI:-https://${SERVER_NAME:-localhost}:${HTTPS_PORT:-443}}
 
       # Run "composer require symfony/orm-pack" to install and configure Doctrine ORM
-      DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-15}&charset=${POSTGRES_CHARSET:-utf8}
+      #DATABASE_URL: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-!ChangeMe!}@database:5432/${POSTGRES_DB:-app}?serverVersion=${POSTGRES_VERSION:-15}&charset=${POSTGRES_CHARSET:-utf8}
 
     volumes:
       - caddy_data:/data
@@ -25,7 +25,17 @@ services:
         target: 443
         published: ${HTTP3_PORT:-443}
         protocol: udp
+  
 
+  chromadb:
+    image: docker.io/chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
 volumes:
   caddy_data:
   caddy_config:
+  chromadb_data:

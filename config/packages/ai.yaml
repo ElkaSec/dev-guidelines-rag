@@ -1,11 +1,17 @@
 ai:
-    # see https://symfony.com/doc/current/ai/components/platform.html
     platform:
         gemini:
             api_key: '%env(GEMINI_API_KEY)%'
 
-    # see https://symfony.com/doc/current/ai/bundles/ai-bundle.html
     agent:
+        rag:
+            platform: 'ai.platform.gemini'
+            model: 'gemini-2.5-flash'
+            prompt: >
+                Tu es un assistant technique. Réponds uniquement à partir du contexte fourni.
+                Si la réponse n'est pas dans le contexte, dis-le clairement.
 
-    # see https://symfony.com/doc/current/ai/components/store.html
     store:
+        chromadb:
+            default:
+                collection: 'my_collection'
