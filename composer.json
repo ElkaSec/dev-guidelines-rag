@@ -9,6 +9,10 @@
         "php": ">=8.5.12",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "symfony/ai-agent": "^0.15.0",
+        "symfony/ai-bundle": "^0.15.0",
+        "symfony/ai-gemini-platform": "^0.15.0",
+        "symfony/ai-store": "^0.15.0",
         "symfony/console": "7.4.*",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2",
@@ -16,7 +20,6 @@
         "symfony/runtime": "7.4.*",
         "symfony/twig-bundle": "7.4.*",
         "symfony/yaml": "7.4.*",
-        "theodo-group/llphant": "^0.7.8",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0"
     },

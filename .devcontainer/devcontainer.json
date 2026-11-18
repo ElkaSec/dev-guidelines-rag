@@ -7,13 +7,14 @@
     ],
     "service": "php",
     "workspaceFolder": "/app",
-    "remoteUser": "nonroot",
+    "remoteUser": "root",
     "customizations": {
         "vscode": {
             "extensions": [
                 "symfony.language-tools",
                 "bmewburn.vscode-intelephense-client",
-                "xdebug.php-debug"
+                "DEVSENSE.phptools-vscode"
+                
             ],
             "settings": {
                 "launch": {
